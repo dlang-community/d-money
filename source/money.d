@@ -63,7 +63,6 @@ import std.traits;
 import std.string;
 import std.stdio;
 
-
 @nogc pure @safe nothrow private long pow10(int x)
 {
     return 10 ^^ x;
@@ -99,12 +98,13 @@ struct currency(string currency_name, int dec_places = 4, roundingMode rmode = r
     /// Create a new Fixed struct given a string
     this(Range)(Range s) if (isNarrowString!Range)
     {
-	s = s.replace(",", "");
+        s = s.replace(",", "");
         if (!s.empty)
         {
-	    if (!isNumeric(s)) {
-		throw new ParseError("!isNumeric: " ~ s);
-	    }
+            if (!isNumeric(s))
+            {
+                throw new ParseError("!isNumeric: " ~ s);
+            }
             auto spl = s.splitter(".");
             auto frontItem = spl.front;
             spl.popFront;
@@ -135,7 +135,7 @@ struct currency(string currency_name, int dec_places = 4, roundingMode rmode = r
 
     private static immutable dec_mask = __factor;
 
-    T opCast(T: bool)() const
+    T opCast(T : bool)() const
     {
         return amount != 0;
     }
@@ -153,14 +153,44 @@ struct currency(string currency_name, int dec_places = 4, roundingMode rmode = r
         assert(p.to!int == 1);
         assert(p.to!double == 1.1);
 
-	auto y = EUR("1,000.000,00");
-	auto z = EUR("1000");
-	assert(y == z);
+        auto y = EUR("1,000.000,00");
+        auto z = EUR("1000");
+        assert(y == z);
+    }
+
+    T opUnary(string s)() if (s == "--" || s == "++")
+    {
+        mixin("amount" ~ s[0] ~ "= __factor;");
+        return this;
+    }
+
+    T opUnary(string s)() const if (s == "-" || s == "+")
+    {
+        return fromLong(mixin(s ~ "amount"));
+    }
+
+    unittest
+    {
+        alias EUR = currency!("EUR");
+        auto p = EUR(1.1);
+        assert(to!string(p) == "1.1000EUR");
+
+        p++;
+        assert(p == EUR("2.1"));
+        ++p;
+        assert(p == EUR("3.1"));
+
+        assert((-p) == EUR("-3.1"));
+        assert((+p) == EUR("+3.1"));
+
+        p--;
+        assert(p == EUR("2.1"));
+        --p;
+        assert(p == EUR("1.1"));
     }
 
     /// Can add and subtract money amounts of the same type.
-    T opBinary(string op)(const T rhs) const
-        if (op != "/")
+    T opBinary(string op)(const T rhs) const if (op != "/")
     {
         static if (op == "+")
         {
@@ -182,13 +212,14 @@ struct currency(string currency_name, int dec_places = 4, roundingMode rmode = r
             static assert(0, "Operator " ~ op ~ " not implemented");
     }
 
-   /// Can divide by money amount of the same type
-    double opBinary(string op)(const T rhs) const
-        if (op == "/")
+    /// Can divide by money amount of the same type
+    /// https://en.wikipedia.org/wiki/Integer#Algebraic_properties
+    /// amount is integer, which is closed under "+|-|*", but not "/"
+    /// so the return type is double to simulate rational
+    double opBinary(string op)(const T rhs) const if (op == "/")
     {
         return (amount.to!double) / (rhs.amount.to!double);
     }
-
 
     /// Can multiply, divide, and modulo with integer values.
     T opBinary(string op)(const long rhs) const
@@ -213,7 +244,6 @@ struct currency(string currency_name, int dec_places = 4, roundingMode rmode = r
         else
             static assert(0, "Operator " ~ op ~ " not implemented");
     }
-    alias opBinaryRight = opBinary;
 
     /// Can multiply, divide, and modulo floating point numbers.
     T opBinary(string op)(const real rhs) const
@@ -243,6 +273,24 @@ struct currency(string currency_name, int dec_places = 4, roundingMode rmode = r
         }
         else
             static assert(0, "Operator " ~ op ~ " not implemented");
+    }
+
+    T opBinaryRight(string op)(const real lhs) const
+    {
+        static if (op == "*")
+        {
+            return opBinary!op(lhs); // just swap lhs to rhs
+        }
+        else
+            static assert(0, "Operator " ~ op ~ " not implemented");
+    }
+
+    unittest
+    {
+        alias EUR = currency!("EUR");
+        auto a = EUR(2);
+        assert((3.0 * a) == (a * 3.0));
+        assert((3 * a) == (a * 3));
     }
 
     /// Can add and subtract money amounts of the same type.
@@ -332,7 +380,7 @@ struct currency(string currency_name, int dec_places = 4, roundingMode rmode = r
 
     bool opEquals(T)(const T other) const if (isNumeric!T)
     {
-	T other_amount = other * __factor;
+        T other_amount = other * __factor;
         return other_amount == amount;
     }
 
@@ -365,7 +413,7 @@ struct currency(string currency_name, int dec_places = 4, roundingMode rmode = r
 
     int opCmp(T)(const T other) const if (isNumeric!T)
     {
-	T other_amount = other * __factor;
+        T other_amount = other * __factor;
         if (this.amount < other_amount)
             return -1;
         else if (this.amount > other_amount)
@@ -373,7 +421,6 @@ struct currency(string currency_name, int dec_places = 4, roundingMode rmode = r
         else
             return 0;
     }
-
 
     void toDecimalString(scope void delegate(const(char)[]) sink, FormatSpec!char fmt) const
     {
@@ -403,11 +450,11 @@ struct currency(string currency_name, int dec_places = 4, roundingMode rmode = r
         case 's': /* default e.g. for writeln */
             goto case;
         case 'f':
-	        toDecimalString(sink, fmt);
+            toDecimalString(sink, fmt);
             sink(currency_name);
             break;
         case 'F':
-	        toDecimalString(sink, fmt);
+            toDecimalString(sink, fmt);
             break;
         case 'd':
             auto ra = round!rmode(amount, dec_places);
@@ -439,7 +486,7 @@ unittest
     assert(format("%.2f", EUR(3.145)) == "3.15EUR");
     // From issue #5
     assert(format("%.4f", EUR(0.01234)) == "0.0123EUR");
-    
+
     assert(format("%F", EUR(3.141592)) == "3.1416");
 }
 
@@ -624,7 +671,7 @@ enum roundingMode
     HALF_FROM_ZERO,
     /** Throw exception if rounding would be necessary */
     UNNECESSARY
-    // dfmt on
+      // dfmt on
 }
 
 /** Round an integer to a certain decimal place according to rounding mode */
@@ -879,9 +926,11 @@ unittest
     assert(format("%f", y) == "123.0000EUR");
 }
 
-unittest {
+unittest
+{
     // From issue #8  https://github.com/qznc/d-money/issues/8
     import std.format : format;
+
     alias T1 = currency!("T1", 2);
     auto t1 = T1(-123.45);
     assert(format("%f", t1) == "-123.45T1");
@@ -890,12 +939,13 @@ unittest {
     assert(t1 == t2);
 }
 
-unittest {
+unittest
+{
     // From https://github.com/qznc/d-money/issues/11
     alias EUR = currency!("EUR");
-    EUR x = EUR( 1.23456 );  // rounded
-    EUR y = EUR("1.23456");  // truncated
-    EUR z = EUR("1.23456789");  // truncated
+    EUR x = EUR(1.23456); // rounded
+    EUR y = EUR("1.23456"); // truncated
+    EUR z = EUR("1.23456789"); // truncated
     assert(8 == y.sizeof);
     assert(x >= y);
     assert(z == y);
