@@ -1,6 +1,6 @@
 [![Build Status Travis](https://travis-ci.org/dlang-community/d-money.svg?branch=master)](https://travis-ci.org/dlang-community/d-money)
 [![Build status Appveyor](https://ci.appveyor.com/api/projects/status/n6q6m5975c4h219m/branch/master?svg=true)](https://ci.appveyor.com/project/qznc/d-money/branch/master)
-[![Coverage Status](https://coveralls.io/repos/github/dlang-community/d-money/badge.svg?branch=master)](https://coveralls.io/github/dlang-community/d-money?branch=master)
+[![codecov status](https://codecov.io/gh/dlang-community/d-money/branch/master/graph/badge.svg)](https://codecov.io/gh/dlang-community/d-money)
 [![Dub Package](https://img.shields.io/dub/v/money.svg)](https://code.dlang.org/packages/money)
 
 # D-Money
