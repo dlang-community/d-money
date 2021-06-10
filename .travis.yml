@@ -4,7 +4,6 @@ d:
   - dmd-beta
   - dmd-nightly
   - ldc
-  - ldc-beta
 
 script:
   - dub test -b unittest-cov
