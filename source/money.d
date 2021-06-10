@@ -680,7 +680,7 @@ out (result)
 {
     assert((result % pow10(dec_place)) == 0);
 }
-body
+do
 {
     const zeros = pow10(dec_place);
     /* short cut, also removes edge cases */
