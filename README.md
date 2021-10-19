@@ -19,6 +19,8 @@ Features:
 
 
 ```d
+    import money;
+
     alias EUR = currency!("EUR");
 
     assert(EUR(100.0001) == EUR(100.00009));
